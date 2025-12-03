@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Adoption App</title>
+   
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+   
+    <!-- Load Google Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+   
+    <!-- Load React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+   
+    <!-- Load Babel to transpile JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+   
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide-react@0.395.0/dist/umd/lucide-react.js"></script>
+   
+    <!-- Apply custom font and base styling -->
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1;
+        border-radius: 4px;
+      }
+    </style>
+</head>
+<body class="bg-gray-300">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+
+// Destructure React hooks
+const { useState, useEffect } = React;
+
+// --- Icon Safe Loading ---
+const SafeIcon = ({ name, size = 24, className = '' }) => {
+  const IconComponent = typeof LucideReact !== 'undefined' ? LucideReact[name] : null;
+  if (IconComponent) {
+    return <IconComponent size={size} className={className} />;
+  }
+  return <div style={{ width: size + 'px', height: size + 'px' }} className={`bg-gray-200 rounded-full ${className}`}></div>;
+};
+
+
+// Mock database
+const MOCK_PETS = [
+  { id: 1, name: 'Buddy', age: '2 years old', type: 'dog', personality: ['active', 'energetic'], photo: 'https://placehold.co/300x300/F8B400/FFF?text=Buddy' },
+  { id: 2, name: 'Mittens', age: '1 year old', type: 'cat', personality: ['calm'], photo: 'https://placehold.co/300x300/5A6A90/FFF?text=Mittens' },
+  { id: 3, name: 'Jack', age: '3 months old', type: 'dog', personality: ['energetic', 'playful'], photo: 'https://placehold.co/300x300/E8751A/FFF?text=Jack' },
+  { id: 4, name: 'Tweety', age: '6 months old', type: 'bird', personality: ['active'], photo: 'https://placehold.co/300x300/1E90FF/FFF?text=Tweety' },
+  { id: 5, name: 'Shelly', age: '5 years old', type: 'turtle', personality: ['calm'], photo: 'https://placehold.co/300x300/228B22/FFF?text=Shelly' },
+  { id: 6, name: 'Luna', age: '3 years old', type: 'cat', personality: ['calm', 'shy'], photo: 'https://placehold.co/300x300/483D8B/FFF?text=Luna' },
+  { id: 7, name: 'Max', age: '4 years old', type: 'dog', personality: ['active', 'loyal'], photo: 'https://placehold.co/300x300/A0522D/FFF?text=Max' },
+  { id: 8, name: 'Polly', age: '1 year old', type: 'bird', personality: ['active', 'energetic'], photo: 'https://placehold.co/300x300/FF6347/FFF?text=Polly' },
+];
+
+const ANIMAL_TYPES = [
+  { id: 'cat', name: 'Cat', iconName: 'Cat' },
+  { id: 'dog', name: 'Dog', iconName: 'Dog' },
+  { id: 'bird', name: 'Bird', iconName: 'Bird' },
+  { id: 'turtle', name: 'Turtle', iconName: 'Turtle' },
+];
+
+const PERSONALITIES = [
+  { id: 'calm', name: 'Calm' },
+  { id: 'active', name: 'Active' },
+  { id: 'energetic', name: 'Energetic' },
+  { id: 'playful', name: 'Playful' },
+  { id: 'shy', name: 'Shy' },
+];
+
+// Header
+const AppHeader = ({ title, onBack, showSearch = false }) => (
+  <header className="sticky top-0 bg-white shadow-sm z-10 p-4 flex items-center justify-between">
+    <div className="w-10">
+      {onBack && (
+        <button onClick={onBack} className="text-gray-600 hover:text-gray-900">
+          <SafeIcon name="ArrowLeft" size={24} />
+        </button>
+      )}
+    </div>
+    <h1 className="text-lg font-bold text-gray-900">{title}</h1>
+    <div className="w-10">
+      {showSearch && (
+        <button className="text-gray-600 hover:text-gray-900">
+          <SafeIcon name="Search" size={24} />
+        </button>
+      )}
+    </div>
+  </header>
+);
+
+// Tab Bar
+const TabBar = ({ activeScreen, onNavigate }) => {
+  const tabs = [
+    { id: 'menu', name: 'Home', iconName: 'Home' },
+    { id: 'location', name: 'Location', iconName: 'MapPin' },
+  ];
+
+  return (
+    <footer className="sticky bottom-0 bg-white border-t border-gray-200 z-10">
+      <nav className="flex justify-around p-2">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => onNavigate(tab.id)}
+            className={`flex flex-col items-center w-20 p-2 rounded-lg ${
+              activeScreen === tab.id
+                ? 'text-pink-600 bg-pink-50'
+                : 'text-gray-500 hover:text-pink-600 hover:bg-pink-50'
+            }`}
+          >
+            <SafeIcon name={tab.iconName} size={24} />
+            <span className="text-xs font-medium mt-1">{tab.name}</span>
+          </button>
+        ))}
+      </nav>
+    </footer>
+  );
+};
+
+// Generic Info Screen (Updated to remove video props)
+const InfoScreen = ({ title, iconName, color, children, onBack }) => (
+    <div className="flex flex-col h-full">
+        <AppHeader title={title} onBack={onBack} />
+        <main className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
+            {/* New, more prominent info box design */}
+            <div className={`p-6 rounded-2xl border-t-8 border-${color}-600 bg-white flex flex-col items-center shadow-xl`}>
+                <SafeIcon name={iconName} size={40} className={`text-${color}-600 mb-3`} />
+                <h3 className={`text-2xl font-black text-gray-900 text-center mb-4`}>{title}</h3>
+                {children}
+            </div>
+            {/* Removed VideoPlayer logic here */}
+        </main>
+        <TabBar activeScreen="menu" onNavigate={onBack} />
+    </div>
+);
+
+
+// --- INFORMATIONAL SCREENS WITH CUSTOM LAYOUT ---
+
+// Dog Body Language Screen (Removed VideoPlayer)
+const DogBodyLanguageScreen = ({ onNavigate }) => (
+    <div className="flex flex-col h-full">
+        <AppHeader title="Dog Body Language" onBack={() => onNavigate('howToHelp')} />
+        <main className="flex-1 overflow-y-auto p-6 space-y-8 bg-white">
+            <p className="text-gray-700 text-center text-sm italic">
+                Understanding your dog's signals is key to a happy relationship and preventing problems.
+            </p>
+           
+            {/* Happy/Relaxed - Red Text, Left Aligned with accent border */}
+            <div className="border-l-4 border-red-500 pl-4">
+                <p className="text-xl font-extrabold text-red-600 mb-2">Happy/Relaxed</p>
+                <p className="text-sm text-red-700">
+                    Loose body, wagging tail (wide, sweeping motions), relaxed ears, soft eyes, slightly open mouth.
+                </p>
+            </div>
+           
+            {/* Warning/Aggression - Black Text, Center Aligned, box background */}
+            <div className="bg-gray-100 p-6 rounded-xl shadow-inner text-center">
+                <p className="text-xl font-extrabold text-gray-900 mb-2">Warning/Aggression</p>
+                <p className="text-sm text-gray-800">
+                    Stiff body, direct stare, tail held high and vibrating, growling, lifted hackles.
+                </p>
+            </div>
+
+            {/* Fear/Stress - Pink Text, Left Aligned with accent border */}
+            <div className="border-l-4 border-pink-500 pl-4">
+                <p className="text-xl font-extrabold text-pink-600 mb-2">Fear/Stress</p>
+                <p className="text-sm text-pink-700">
+                    Tucked tail, avoidance of eye contact, licking lips, yawning (when not tired), ears pinned back, furrowed brow.
+                </p>
+            </div>
+            {/* Removed VideoPlayer here */}
+        </main>
+        <TabBar activeScreen="menu" onNavigate={onNavigate} />
+    </div>
+);
+
+// Cat Body Language Screen (Removed VideoPlayer)
+const CatBodyLanguageScreen = ({ onNavigate }) => (
+    <div className="flex flex-col h-full">
+        <AppHeader title="Cat Body Language" onBack={() => onNavigate('howToHelp')} />
+        <main className="flex-1 overflow-y-auto p-6 space-y-8 bg-white">
+            <p className="text-gray-700 text-center text-sm italic">
+                Cats are subtle, but their tails and ears tell all!
+            </p>
+           
+            {/* Friendly/Content - Purple Text, Left Aligned with accent border */}
+            <div className="border-l-4 border-purple-500 pl-4">
+                <p className="text-xl font-extrabold text-purple-600 mb-2">Friendly/Content</p>
+                <p className="text-sm text-purple-700">
+                    Tail held high with a slight curl at the tip, slow blinking, rubbing against you, purring.
+                </p>
+            </div>
+           
+            {/* Aggressive/Agitated - Black Text, Center Aligned, box background */}
+            <div className="bg-gray-100 p-6 rounded-xl shadow-inner text-center">
+                <p className="text-xl font-extrabold text-gray-900 mb-2">Aggressive/Agitated</p>
+                <p className="text-sm text-gray-800">
+                    Arched back, hackles raised, ears flattened backward, hissing/spitting, tail lashing quickly.
+                </p>
+            </div>
+
+            {/* Anxious/Afraid - Pink Text, Left Aligned with accent border */}
+            <div className="border-l-4 border-pink-500 pl-4">
+                <p className="text-xl font-extrabold text-pink-600 mb-2">Anxious/Afraid</p>
+                <p className="text-sm text-pink-700">
+                    Crouched low to the ground, tail tucked tightly, ears flattened sideways, wide eyes.
+                </p>
+            </div>
+            {/* Removed VideoPlayer here */}
+        </main>
+        <TabBar activeScreen="menu" onNavigate={onNavigate} />
+    </div>
+);
+
+// These screens now use the updated InfoScreen component (no video props)
+const KittenInfoScreen = ({ onNavigate }) => (
+    <InfoScreen
+        title="Found a Kitten?"
+        iconName="ClipboardList"
+        color="teal"
+        onBack={() => onNavigate('howToHelp')}
+    >
+        <p className="text-gray-700 mt-2 text-center">
+            Your first steps are critical for a found kitten's survival!
+        </p>
+        <ol className="list-decimal list-inside bg-gray-50 p-4 rounded-lg mt-3 shadow-inner space-y-2 w-full text-left">
+            <li className="font-semibold">Observe, Don't Touch: Wait to see if mom returns.</li>
+            <li className="font-semibold">Assess Safety: Intervene if dirty, crying, or in danger.</li>
+            <li className="font-semibold">Keep Warm: Never feed a cold kitten.</li>
+            <li className="font-semibold">No Cow's Milk: Use KMR (Kitten Milk Replacer).</li>
+            <li className="font-semibold">Contact Us: We can guide you on finding a foster.</li>
+        </ol>
+    </InfoScreen>
+);
+
+const VetServicesScreen = ({ onNavigate }) => (
+    <InfoScreen
+        title="Common Pet Parasites"
+        iconName="Stethoscope"
+        color="teal"
+        onBack={() => onNavigate('howToHelp')}
+    >
+        <p className="text-gray-700 mt-2 text-center">
+            Protecting your pet requires year-round prevention.
+        </p>
+        <div className="bg-gray-50 p-4 rounded-lg mt-3 shadow-inner space-y-3 w-full text-left">
+            <h4 className="font-bold text-gray-900">Heartworm</h4>
+            <p className="text-sm">Spread by mosquitoes, heartworms live in the heart. Monthly prevention is essential.</p>
+
+            <h4 className="font-bold text-gray-900 border-t pt-3">Flea & Tick</h4>
+            <p className="text-sm">These external parasites cause disease. Prevention is typically a monthly treat or topical.</p>
+        </div>
+    </InfoScreen>
+);
+
+const PetFirstAidScreen = ({ onNavigate }) => (
+    <InfoScreen
+        title="Pet First Aid Basics"
+        iconName="Syringe"
+        color="teal"
+        onBack={() => onNavigate('howToHelp')}
+    >
+        <p className="text-gray-700 mt-2 text-center">
+            Know these basic steps. <span className="font-bold text-red-600">Always contact your vet immediately.</span>
+        </p>
+        <div className="bg-gray-50 p-4 rounded-lg mt-3 shadow-inner space-y-3 w-full text-left">
+            <h4 className="font-bold text-gray-900">Choking</h4>
+            <p className="text-sm">Sweep mouth if visible. Perform abdominal thrusts behind the ribs.</p>
+
+            <h4 className="font-bold text-gray-900 border-t pt-3">Severe Bleeding</h4>
+            <p className="text-sm">Apply direct pressure with a clean cloth. Elevate limb. Don't stop pressing.</p>
+
+            <h4 className="font-bold text-gray-900 border-t pt-3">Heatstroke</h4>
+            <p className="text-sm">Cool with cool (not ice) water on paws/thighs. Go to vet immediately.</p>
+        </div>
+    </InfoScreen>
+);
+
+const IntroducingNewPetScreen = ({ onNavigate }) => (
+    <InfoScreen
+        title="Introducing a New Pet"
+        iconName="Users"
+        color="teal"
+        onBack={() => onNavigate('howToHelp')}
+    >
+        <p className="text-gray-700 mt-2 text-center">
+            A slow, neutral introduction prevents future conflicts.
+        </p>
+        <ol className="list-decimal list-inside bg-gray-50 p-4 rounded-lg mt-3 shadow-inner space-y-2 w-full text-left">
+            <li className="font-semibold">Initial Separation: Keep the new pet isolated for 3-7 days.</li>
+            <li className="font-semibold">Scent Swapping: Swap blankets between pets.</li>
+            <li className="font-semibold">Visual Introduction: Use barriers (gates).</li>
+            <li className="font-semibold">Supervised Freedom: Only when calm.</li>
+        </ol>
+    </InfoScreen>
+);
+
+
+// --- ADOPTION QUESTIONNAIRE SCREEN ---
+const QuestionnaireScreen = ({ onNavigate, formData, onFormUpdate, onSubmit }) => {
+    const totalSteps = 4;
+    const [currentStep, setCurrentStep] = useState(1);
+   
+    // Local state for multi-step form data
+    const [localAnswers, setLocalAnswers] = useState({
+        residenceStatus: '',
+        dwellingType: '',
+        hasSecureYard: '',
+        timeAlone: '',
+        activityLevel: '',
+    });
+
+    const handleLocalUpdate = (field, value) => {
+        setLocalAnswers(prev => ({ ...prev, [field]: value }));
+    };
+
+    const isCurrentStepValid = () => {
+        switch (currentStep) {
+            case 1:
+                return formData.name && formData.email && formData.phone;
+            case 2:
+                return localAnswers.residenceStatus && localAnswers.dwellingType && localAnswers.hasSecureYard;
+            case 3:
+                return localAnswers.timeAlone && localAnswers.activityLevel && formData.animalType;
+            case 4:
+                return formData.personality.length > 0;
+            default:
+                return false;
+        }
+    };
+
+    const handleNext = () => {
+        if (isCurrentStepValid()) {
+            setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+        }
+    };
+
+    const handleBack = () => {
+        setCurrentStep(prev => Math.max(prev - 1, 1));
+    };
+
+    const handleFinish = () => {
+        if (isCurrentStepValid()) {
+            onSubmit();
+        }
+    };
+
+    // Form navigation buttons
+    const FormNavigation = ({ currentStep, totalSteps, onBack, onNext, onFinish, isStepValid }) => (
+        <div className="flex justify-between mt-6 pt-4 border-t border-gray-200">
+            <button
+                onClick={onBack}
+                disabled={currentStep === 1}
+                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                    currentStep === 1
+                        ? 'text-gray-400 bg-gray-100 cursor-not-allowed'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+            >
+                <SafeIcon name="ArrowLeft" size={20} className="inline mr-1" /> Back
+            </button>
+
+            {currentStep < totalSteps ? (
+                <button
+                    onClick={onNext}
+                    disabled={!isStepValid}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                        isStepValid
+                            ? 'bg-pink-600 text-white hover:bg-pink-700'
+                            : 'bg-pink-300 text-white cursor-not-allowed'
+                    }`}
+                >
+                    Next Step ({currentStep}/{totalSteps}) <SafeIcon name="ArrowRight" size={20} className="inline ml-1" />
+                </button>
+            ) : (
+                <button
+                    onClick={onFinish}
+                    disabled={!isStepValid}
+                    className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                        isStepValid
+                            ? 'bg-green-600 text-white hover:bg-green-700'
+                            : 'bg-green-300 text-white cursor-not-allowed'
+                    }`}
+                >
+                    Submit <SafeIcon name="CheckCircle" size={20} className="inline ml-1" />
+                </button>
+            )}
+        </div>
+    );
+
+    const StepIndicator = () => (
+        <div className="flex justify-between mb-6">
+            {[...Array(totalSteps)].map((_, index) => (
+                <div key={index} className="flex flex-col items-center flex-1">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                        index + 1 <= currentStep ? 'bg-pink-600 text-white' : 'bg-gray-300 text-gray-700'
+                    }`}>
+                        {index + 1}
+                    </div>
+                    <p className={`text-xs mt-1 ${index + 1 <= currentStep ? 'text-pink-600' : 'text-gray-500'}`}>
+                        {index + 1 === 1 ? 'Contact' : index + 1 === 2 ? 'Home' : index + 1 === 3 ? 'Lifestyle' : 'Pet Needs'}
+                    </p>
+                </div>
+            ))}
+        </div>
+    );
+
+    const Step1_Contact = () => (
+        <div className="space-y-4">
+            <h2 className="text-xl font-bold text-gray-800">Step 1: Contact Information</h2>
+            <p className="text-gray-600">This allows us to follow up regarding your matches.</p>
+            <label className="block text-sm font-medium text-gray-700">Full Name</label>
+            <input type="text" value={formData.name} onChange={(e) => onFormUpdate('name', e.target.value)} placeholder="John Doe" className="w-full p-3 border border-gray-300 rounded-lg" />
+            <label className="block text-sm font-medium text-gray-700 pt-2">Email Address</label>
+            <input type="email" value={formData.email} onChange={(e) => onFormUpdate('email', e.target.value)} placeholder="you@example.com" className="w-full p-3 border border-gray-300 rounded-lg" />
+            <label className="block text-sm font-medium text-gray-700 pt-2">Phone Number</label>
+            <input type="tel" value={formData.phone} onChange={(e) => onFormUpdate('phone', e.target.value)} placeholder="(555) 123-4567" className="w-full p-3 border border-gray-300 rounded-lg" />
+        </div>
+    );
+
+    const Step2_HomeLife = () => (
+        <div className="space-y-6">
+            <h2 className="text-xl font-bold text-gray-800">Step 2: Home Environment</h2>
+            <div className="space-y-2">
+                <label className="block font-medium text-gray-700">1. Do you own or rent your home?</label>
+                <div className="flex space-x-4">
+                    {['own', 'rent'].map(opt => (
+                        <button key={opt} onClick={() => handleLocalUpdate('residenceStatus', opt)} className={`flex-1 p-3 border-2 rounded-lg capitalize font-medium transition-all ${localAnswers.residenceStatus === opt ? 'border-pink-500 bg-pink-100 text-pink-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}>{opt}</button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-2">
+                <label className="block font-medium text-gray-700">2. What type of dwelling is it?</label>
+                <div className="grid grid-cols-2 gap-4">
+                    {['house', 'apartment', 'condo'].map(opt => (
+                        <button key={opt} onClick={() => handleLocalUpdate('dwellingType', opt)} className={`p-3 border-2 rounded-lg capitalize font-medium transition-all ${localAnswers.dwellingType === opt ? 'border-pink-500 bg-pink-100 text-pink-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}>{opt}</button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-2">
+                <label className="block font-medium text-gray-700">3. Do you have a secure, fenced yard or patio?</label>
+                <div className="flex space-x-4">
+                    {['yes', 'no'].map(opt => (
+                        <button key={opt} onClick={() => handleLocalUpdate('hasSecureYard', opt)} className={`flex-1 p-3 border-2 rounded-lg capitalize font-medium transition-all ${localAnswers.hasSecureYard === opt ? 'border-pink-500 bg-pink-100 text-pink-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}>{opt}</button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+
+    const Step3_Lifestyle = () => (
+        <div className="space-y-6">
+            <h2 className="text-xl font-bold text-gray-800">Step 3: Lifestyle Match</h2>
+            <div className="space-y-2">
+                <label className="block font-medium text-gray-700">1. How many hours will the pet be left alone daily?</label>
+                <div className="grid grid-cols-2 gap-3">
+                    {['0-2 hours', '2-4 hours', '4-8 hours', '8+ hours'].map(opt => (
+                        <button key={opt} onClick={() => handleLocalUpdate('timeAlone', opt)} className={`p-3 border-2 rounded-lg text-sm transition-all ${localAnswers.timeAlone === opt ? 'border-pink-500 bg-pink-100 text-pink-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}>{opt}</button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-2">
+                <label className="block font-medium text-gray-700">2. What is your preferred activity level?</label>
+                <div className="grid grid-cols-3 gap-3">
+                    {['Couch Potato', 'Moderate Energy', 'Highly Active'].map(opt => (
+                        <button key={opt} onClick={() => handleLocalUpdate('activityLevel', opt)} className={`p-3 border-2 rounded-lg text-sm transition-all ${localAnswers.activityLevel === opt ? 'border-pink-500 bg-pink-100 text-pink-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}>{opt}</button>
+                    ))}
+                </div>
+            </div>
+            <div className="space-y-2">
+                <label className="block font-medium text-gray-700">3. What type of animal are you looking for?</label>
+                <div className="grid grid-cols-2 gap-4">
+                    {ANIMAL_TYPES.map(type => (
+                        <button key={type.id} onClick={() => onFormUpdate('animalType', type.id)} className={`flex items-center justify-center p-4 border-2 rounded-lg transition-all ${formData.animalType === type.id ? 'border-pink-500 bg-pink-100 text-pink-700 shadow-md' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}>
+                            <SafeIcon name={type.iconName} size={28} className="mr-2"/>
+                            {type.name}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+
+    const Step4_Preferences = () => {
+        const handlePersonalityToggle = (trait) => {
+            const current = formData.personality;
+            const updated = current.includes(trait) ? current.filter(t => t !== trait) : [...current, trait];
+            onFormUpdate('personality', updated);
+        };
+        return (
+            <div className="space-y-6">
+                <h2 className="text-xl font-bold text-gray-800">Step 4: Desired Personality</h2>
+                <div className="grid grid-cols-2 gap-4">
+                    {PERSONALITIES.map(trait => (
+                        <button key={trait.id} onClick={() => handlePersonalityToggle(trait.id)} className={`p-4 border-2 rounded-xl text-center font-medium transition-all ${formData.personality.includes(trait.id) ? 'border-pink-500 bg-pink-100 text-pink-700 shadow-md ring-2 ring-pink-200' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}>{trait.name}</button>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
+    const renderStep = () => {
+        switch (currentStep) {
+            case 1: return <Step1_Contact />;
+            case 2: return <Step2_HomeLife />;
+            case 3: return <Step3_Lifestyle />;
+            case 4: return <Step4_Preferences />;
+            default: return <Step1_Contact />;
+        }
+    };
+
+    return (
+        <div className="flex flex-col h-full">
+            <AppHeader title="Adoption Questionnaire" onBack={() => onNavigate('howToHelp')} />
+            <main className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+                <StepIndicator />
+                <div className="bg-white p-6 rounded-xl shadow-lg">
+                    {renderStep()}
+                </div>
+                <FormNavigation currentStep={currentStep} totalSteps={totalSteps} onBack={handleBack} onNext={handleNext} onFinish={handleFinish} isStepValid={isCurrentStepValid()} />
+            </main>
+            <TabBar activeScreen="menu" onNavigate={onNavigate} />
+        </div>
+    );
+};
+
+// --- Screen 1: Home / Mission Screen
+const HomeScreen = ({ onNavigate }) => (
+  <div className="flex flex-col h-full">
+    <AppHeader title="The Secret Animals Society" showSearch={true} />
+    <main className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="rounded-lg overflow-hidden shadow-lg">
+        <img src="https://placehold.co/600x300/87CEEB/FFF?text=Our+Heroes" alt="Group of adopted pets" className="w-full h-48 object-cover" />
+        <div className="p-6 bg-white">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">OUR MISSION</h2>
+          <ul className="space-y-3 list-disc list-inside text-gray-700">
+            <li>Rescue animals from high-risk situations.</li>
+            <li>Provide medical care and rehabilitation.</li>
+            <li>Find loving, permanent homes.</li>
+            <li>Educate the public on responsible pet ownership.</li>
+          </ul>
+        </div>
+      </div>
+      <button onClick={() => onNavigate('menu')} className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors">Get Started</button>
+    </main>
+    <footer className="bg-gray-100 p-4 border-t">
+      <div className="flex justify-center space-x-8">
+        <button className="text-gray-600 hover:text-gray-900 flex flex-col items-center">
+          <SafeIcon name="Settings" size={24} />
+          <span className="text-xs mt-1">Settings</span>
+        </button>
+        <button className="text-gray-600 hover:text-gray-900 flex flex-col items-center">
+          <SafeIcon name="Facebook" size={24} />
+          <span className="text-xs mt-1">Social</span>
+        </button>
+      </div>
+    </footer>
+  </div>
+);
+
+// Screen 2: Main Menu Screen
+const MainMenuScreen = ({ onNavigate }) => {
+  const menuItems = [
+    { id: 'howToHelp', name: 'Adoptions & Resources', iconName: 'Heart', color: 'bg-pink-500' },
+    { id: 'report', name: 'Report Cruelty', iconName: 'Shield', color: 'bg-purple-500' },
+    { id: 'lostFound', name: 'Lost & Found', iconName: 'SearchCheck', color: 'bg-pink-400' },
+  ];
+
+  return (
+    <div className="flex flex-col h-full">
+      <AppHeader title="Main Menu" />
+      <main className="flex-1 overflow-y-auto p-6 flex flex-col justify-center items-center">
+        <div className="w-full max-w-xs space-y-6">
+          {menuItems.map(item => (
+            <button key={item.id} onClick={() => onNavigate(item.id)} className={`${item.color} text-white w-full h-32 rounded-2xl shadow-lg flex flex-col justify-center items-center transition-transform hover:scale-105`}>
+              <SafeIcon name={item.iconName} size={40} />
+              <span className="text-xl font-semibold mt-2">{item.name}</span>
+            </button>
+          ))}
+        </div>
+      </main>
+      <TabBar activeScreen="menu" onNavigate={onNavigate} />
+    </div>
+  );
+};
+
+// Screen 3: "How to Help" Information Screen
+const HowToHelpScreen = ({ onNavigate }) => {
+  const transactionalOptions = [
+    { id: 'questionnaire', target: 'questionnaire', name: 'Adopt', description: 'Start the journey to find your new best friend.', iconName: 'PawPrint', color: 'pink' },
+    { id: 'donate', target: 'donateQuiz', name: 'Donate', description: 'Support our mission.', iconName: 'BadgeDollarSign', color: 'purple' },
+    { id: 'save', target: 'fosterQuiz', name: 'Foster', description: 'Provide a temporary home.', iconName: 'Home', color: 'purple' },
+  ];
+
+  const infoOptions = [
+    { id: 'dogBody', target: 'dogBodyLanguage', name: 'Dog Body Language', description: 'Learn how to read your canine companion.', iconName: 'Dog', color: 'teal' },
+    { id: 'catBody', target: 'catBodyLanguage', name: 'Cat Body Language', description: 'Decode your feline friend\'s signals.', iconName: 'Cat', color: 'teal' },
+    { id: 'kittenFound', target: 'kittenInfo', name: 'Found a Kitten?', description: 'Critical steps for caring for orphaned kittens.', iconName: 'ClipboardList', color: 'teal' },
+    { id: 'vetServices', target: 'vetServices', name: 'Common Pet Parasites', description: 'Parasite prevention and identification.', iconName: 'Stethoscope', color: 'teal' },
+    { id: 'firstAid', target: 'petFirstAid', name: 'Pet First Aid Basics', description: 'What to do during common emergencies.', iconName: 'Syringe', color: 'teal' },
+    { id: 'introPet', target: 'newPetIntro', name: 'Introducing a New Pet', description: 'Steps for safe integration.', iconName: 'Users', color: 'teal' },
+  ];
+
+  const OptionButton = ({ target, name, description, iconName, color }) => (
+    <button onClick={() => onNavigate(target)} className={`w-full p-4 bg-white rounded-xl shadow-md text-left transition-all border-l-4 border-${color}-500 hover:shadow-lg`}>
+        <div className="flex items-start">
+            <SafeIcon name={iconName} size={28} className={`text-${color}-600 mt-1 mr-3 shrink-0`} />
+            <div>
+                <h3 className="text-lg font-bold text-gray-900">{name}</h3>
+                <p className="text-sm text-gray-600 mt-1">{description}</p>
+            </div>
+        </div>
+    </button>
+  );
+
+  return (
+    <div className="flex flex-col h-full">
+      <AppHeader title="How to Help" onBack={() => onNavigate('menu')} />
+      <main className="flex-1 overflow-y-auto p-6 space-y-6">
+        <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Take Action</h2>
+        <div className="space-y-4">
+            {transactionalOptions.map(option => <OptionButton key={option.id} {...option} />)}
+        </div>
+        <h2 className="text-xl font-bold text-gray-800 border-b pb-2 pt-4">Pet Owner Resources</h2>
+        <div className="space-y-4">
+            {infoOptions.map(option => <OptionButton key={option.id} {...option} />)}
+        </div>
+      </main>
+      <TabBar activeScreen="menu" onNavigate={onNavigate} />
+    </div>
+  );
+};
+
+// --- Screen 4: Donate Quiz/Form ---
+const DonateQuizScreen = ({ onNavigate }) => {
+    const [amount, setAmount] = useState(50);
+    const [frequency, setFrequency] = useState('monthly');
+    const amounts = [25, 50, 100, 250];
+    const handleConfirm = () => onNavigate('menu');
+
+    return (
+        <div className="flex flex-col h-full">
+            <AppHeader title="Support Our Animals" onBack={() => onNavigate('howToHelp')} />
+            <main className="flex-1 overflow-y-auto p-6 space-y-6">
+                <section className="bg-purple-50 p-4 rounded-lg">
+                    <h3 className="text-xl font-bold text-purple-700 flex items-center mb-2"><SafeIcon name="BadgeDollarSign" size={28} className="mr-2"/> Choose Your Impact</h3>
+                    <p className="text-sm text-purple-600">Your generosity provides medical care, food, and shelter.</p>
+                </section>
+                <div className="space-y-4">
+                    <h4 className="text-md font-semibold text-gray-800">1. Select Donation Amount</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                        {amounts.map(a => (
+                            <button key={a} onClick={() => setAmount(a)} className={`p-4 border-2 rounded-lg font-bold text-xl transition-all ${amount === a ? 'border-purple-600 bg-purple-100 text-purple-700 shadow-md' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}>${a}</button>
+                        ))}
+                        <input type="number" placeholder="Other" onChange={(e) => setAmount(parseInt(e.target.value) || 0)} className="p-4 border-2 border-gray-300 rounded-lg text-xl text-center" />
+                    </div>
+                </div>
+                <div className="space-y-4">
+                    <h4 className="text-md font-semibold text-gray-800">2. Choose Frequency</h4>
+                    <div className="flex space-x-4">
+                        {['one-time', 'monthly'].map(f => (
+                            <button key={f} onClick={() => setFrequency(f)} className={`flex-1 p-3 border-2 rounded-lg font-medium capitalize transition-all ${frequency === f ? 'border-purple-600 bg-purple-100 text-purple-700 shadow-md' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}>{f.replace('-', ' ')}</button>
+                        ))}
+                    </div>
+                </div>
+                <button onClick={handleConfirm} disabled={amount < 5} className="w-full bg-purple-600 text-white font-bold py-4 px-4 rounded-lg shadow-xl hover:bg-purple-700 transition-colors text-lg disabled:bg-gray-400">Donate ${amount} {frequency === 'monthly' ? 'per Month' : 'Now'}</button>
+            </main>
+            <TabBar activeScreen="menu" onNavigate={onNavigate} />
+        </div>
+    );
+};
+
+// --- Screen 5: Foster Quiz/Form ---
+const FosterQuizScreen = ({ onNavigate }) => {
+    const [homeType, setHomeType] = useState(null);
+    const [experience, setExperience] = useState(null);
+    const [timeAvailable, setTimeAvailable] = useState(null);
+    const handleConfirm = () => { if (homeType && experience && timeAvailable) onNavigate('menu'); };
+
+    const homeOptions = [{id: 'house', name: 'House (w/ Yard)', icon: 'Home'}, {id: 'apartment', name: 'Apartment/Condo', icon: 'Building'}];
+    const experienceOptions = [{id: 'yes', name: 'Yes, I have fostered before'}, {id: 'no', name: 'No, but I am ready to learn'}];
+    const timeOptions = [{id: 'fulltime', name: 'Full-time presence'}, {id: 'parttime', name: 'Part-time presence'}, {id: 'weekend', name: 'Weekends only'}];
+
+    const Step = ({ title, children }) => (
+        <div className="bg-white p-5 rounded-xl shadow-md space-y-3">
+            <h4 className="text-lg font-bold text-pink-700">{title}</h4>
+            {children}
+        </div>
+    );
+
+    return (
+        <div className="flex flex-col h-full">
+            <AppHeader title="Become a Foster Hero" onBack={() => onNavigate('howToHelp')} />
+            <main className="flex-1 overflow-y-auto p-6 space-y-6">
+                <section className="bg-pink-50 p-4 rounded-lg border-l-4 border-pink-500">
+                    <h3 className="text-xl font-bold text-pink-700">Quick Eligibility Check</h3>
+                </section>
+                <Step title="1. Your Home Environment">
+                    <div className="grid grid-cols-2 gap-4">
+                        {homeOptions.map(option => (
+                            <button key={option.id} onClick={() => setHomeType(option.id)} className={`flex flex-col items-center p-4 border-2 rounded-lg transition-all ${homeType === option.id ? 'border-pink-500 bg-pink-100 text-pink-700 shadow-lg' : 'border-gray-300 bg-white text-gray-600 hover:bg-gray-50'}`}>
+                                <SafeIcon name={option.icon} size={32} />
+                                <span className="mt-2 text-sm font-medium text-center">{option.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                </Step>
+                <Step title="2. Previous Experience">
+                    <div className="space-y-2">
+                        {experienceOptions.map(option => (
+                            <button key={option.id} onClick={() => setExperience(option.id)} className={`w-full p-3 border-2 rounded-lg text-left transition-all font-medium ${experience === option.id ? 'border-pink-500 bg-pink-100 text-pink-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}>{option.name}</button>
+                        ))}
+                    </div>
+                </Step>
+                <Step title="3. Time Commitment">
+                    <div className="space-y-2">
+                        {timeOptions.map(option => (
+                            <button key={option.id} onClick={() => setTimeAvailable(option.id)} className={`w-full p-3 border-2 rounded-lg text-left transition-all font-medium ${timeAvailable === option.id ? 'border-pink-500 bg-pink-100 text-pink-700' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}>{option.name}</button>
+                        ))}
+                    </div>
+                </Step>
+                <button onClick={handleConfirm} disabled={!homeType || !experience || !timeAvailable} className="w-full bg-pink-600 text-white font-bold py-4 px-4 rounded-lg shadow-xl hover:bg-pink-700 transition-colors text-lg disabled:bg-gray-400">Submit Foster Interest</button>
+            </main>
+            <TabBar activeScreen="menu" onNavigate={onNavigate} />
+        </div>
+    );
+};
+
+// --- Screen 6: Lost & Found ---
+const LostFoundScreen = ({ onNavigate }) => {
+    const [mode, setMode] = useState('lost');
+    const [lostName, setLostName] = useState('');
+    const [lostType, setLostType] = useState('dog');
+    const [lastSeen, setLastSeen] = useState('');
+    const [foundType, setFoundType] = useState('cat');
+    const [foundLocation, setFoundLocation] = useState('');
+    const [foundDescription, setFoundDescription] = useState('');
+
+    const handleLostSubmit = () => { if (lostName && lastSeen) onNavigate('menu'); };
+    const handleFoundSubmit = () => { if (foundLocation && foundDescription) onNavigate('menu'); };
+
+    const PetTypeSelect = ({ value, onChange }) => (
+        <select value={value} onChange={onChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+            {ANIMAL_TYPES.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
+        </select>
+    );
+
+    const LostReportForm = () => (
+        <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">Pet's Name</label>
+            <input type="text" value={lostName} onChange={(e) => setLostName(e.target.value)} placeholder="Pet's Name" className="w-full p-3 border border-gray-300 rounded-lg" />
+            <label className="block text-sm font-medium text-gray-700 pt-2">Pet Type</label>
+            <PetTypeSelect value={lostType} onChange={(e) => setLostType(e.target.value)} />
+            <label className="block text-sm font-medium text-gray-700 pt-2">Last Seen Location</label>
+            <input type="text" value={lastSeen} onChange={(e) => setLastSeen(e.target.value)} placeholder="e.g., Corner of Elm" className="w-full p-3 border border-gray-300 rounded-lg" />
+            <button onClick={handleLostSubmit} className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors mt-6">Submit Lost Pet Report</button>
+        </div>
+    );
+
+    const FoundReportForm = () => (
+        <div className="space-y-4">
+            <label className="block text-sm font-medium text-gray-700">Found Animal Type</label>
+            <PetTypeSelect value={foundType} onChange={(e) => setFoundType(e.target.value)} />
+            <label className="block text-sm font-medium text-gray-700 pt-2">Found Location</label>
+            <input type="text" value={foundLocation} onChange={(e) => setFoundLocation(e.target.value)} placeholder="e.g., Park Entrance" className="w-full p-3 border border-gray-300 rounded-lg" />
+            <label className="block text-sm font-medium text-gray-700 pt-2">Description</label>
+            <textarea value={foundDescription} onChange={(e) => setFoundDescription(e.target.value)} rows="4" placeholder="Color, size, etc." className="w-full p-3 border border-gray-300 rounded-lg"></textarea>
+            <button onClick={handleFoundSubmit} className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors mt-6">Submit Found Pet Report</button>
+        </div>
+    );
+
+    return (
+        <div className="flex flex-col h-full">
+            <AppHeader title="Lost & Found Pets" onBack={() => onNavigate('menu')} />
+            <main className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="flex bg-gray-200 rounded-full p-1 shadow-inner">
+                    <button onClick={() => setMode('lost')} className={`flex-1 py-2 text-center font-semibold rounded-full transition-colors ${mode === 'lost' ? 'bg-pink-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-300'}`}>Report LOST Pet</button>
+                    <button onClick={() => setMode('found')} className={`flex-1 py-2 text-center font-semibold rounded-full transition-colors ${mode === 'found' ? 'bg-pink-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-300'}`}>Report FOUND Pet</button>
+                </div>
+                <div className="bg-white p-5 rounded-xl shadow-lg border-t-4 border-pink-500">
+                    {mode === 'lost' ? <LostReportForm /> : <FoundReportForm />}
+                </div>
+            </main>
+            <TabBar activeScreen="menu" onNavigate={onNavigate} />
+        </div>
+    );
+};
+
+// --- Screen 7: Report Animal Cruelty ---
+const ReportCrueltyScreen = ({ onNavigate }) => {
+    const [location, setLocation] = useState('');
+    const [incidentType, setIncidentType] = useState('neglect');
+    const [description, setDescription] = useState('');
+    const [isAnonymous, setIsAnonymous] = useState(false);
+    const handleSubmit = () => { if (location && description) onNavigate('menu'); };
+    const types = ['Neglect', 'Physical Abuse', 'Abandonment', 'Hoarding', 'Other'];
+
+    return (
+        <div className="flex flex-col h-full">
+            <AppHeader title="Report Animal Cruelty" onBack={() => onNavigate('menu')} />
+            <main className="flex-1 overflow-y-auto p-6 space-y-6">
+                <section className="bg-purple-100 p-4 rounded-lg border-l-4 border-purple-500">
+                    <h3 className="text-xl font-bold text-purple-700 flex items-center mb-2"><SafeIcon name="Shield" size={28} className="mr-2"/> Confidential Report</h3>
+                </section>
+                <div className="space-y-4 bg-white p-5 rounded-xl shadow-md">
+                    <label className="block text-sm font-medium text-gray-700">Location</label>
+                    <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Address" className="w-full p-3 border border-gray-300 rounded-lg" />
+                    <label className="block text-sm font-medium text-gray-700 pt-2">Type</label>
+                    <select value={incidentType} onChange={(e) => setIncidentType(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg">{types.map(type => <option key={type} value={type.toLowerCase().replace(' ', '')}>{type}</option>)}</select>
+                    <label className="block text-sm font-medium text-gray-700 pt-2">Description</label>
+                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="4" placeholder="Details..." className="w-full p-3 border border-gray-300 rounded-lg"></textarea>
+                    <div className="flex items-center pt-2">
+                        <input id="anonymous" type="checkbox" checked={isAnonymous} onChange={(e) => setIsAnonymous(e.target.checked)} className="h-4 w-4 text-purple-600 border-gray-300 rounded" />
+                        <label htmlFor="anonymous" className="ml-2 block text-sm font-medium text-gray-700">Report Anonymously</label>
+                    </div>
+                </div>
+                <button onClick={handleSubmit} className="w-full bg-purple-600 text-white font-bold py-4 px-4 rounded-lg shadow-xl hover:bg-purple-700 transition-colors text-lg">Submit Confidential Report</button>
+            </main>
+            <TabBar activeScreen="menu" onNavigate={onNavigate} />
+        </div>
+    );
+};
+
+// Screen 8: Adoption Matches Results
+const MatchesScreen = ({ onNavigate, matches }) => {
+  const [selectedPet, setSelectedPet] = useState(null);
+  const PetDetailModal = ({ pet, onClose }) => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-20 flex justify-center items-center" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl m-4 max-w-sm w-full overflow-hidden" onClick={e => e.stopPropagation()}>
+        <img src={pet.photo} alt={pet.name} className="w-full h-56 object-cover" />
+        <div className="p-6">
+          <h3 className="text-2xl font-bold">{pet.name}</h3>
+          <p className="text-lg text-gray-600">{pet.age}</p>
+          <p className="mt-4 text-gray-700">{pet.name} is a wonderful {pet.type} with a {pet.personality.join(' & ')} personality.</p>
+          <button onClick={onClose} className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors mt-6">Close</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col h-full">
+      <AppHeader title="Here's Your Matches!" onBack={() => onNavigate('questionnaire')} />
+      <main className="flex-1 overflow-y-auto p-4">
+        {matches.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4">
+            {matches.map(pet => (
+              <button key={pet.id} onClick={() => setSelectedPet(pet)} className="bg-white rounded-lg shadow-md overflow-hidden text-left transition-transform hover:scale-105">
+                <img src={pet.photo} alt={pet.name} className="w-full h-32 object-cover" />
+                <div className="p-4"><h3 className="text-lg font-bold text-gray-900">{pet.name}</h3><p className="text-sm text-gray-600">{pet.age}</p></div>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full text-center p-6">
+            <SafeIcon name="PawPrint" size={64} className="text-gray-400 mb-4" />
+            <h3 className="text-xl font-semibold text-gray-800">No Matches Found</h3>
+            <p className="text-gray-600 mt-2">Try adjusting your search filters!</p>
+            <button onClick={() => onNavigate('questionnaire')} className="mt-6 bg-pink-600 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors">Edit Preferences</button>
+          </div>
+        )}
+      </main>
+      <TabBar activeScreen="menu" onNavigate={onNavigate} />
+      {selectedPet && <PetDetailModal pet={selectedPet} onClose={() => setSelectedPet(null)} />}
+    </div>
+  );
+};
+
+// Screen 9: Location
+const LocationScreen = ({ onNavigate }) => (
+  <div className="flex flex-col h-full">
+    <AppHeader title="Our Locations" />
+    <main className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h3 className="text-xl font-bold text-gray-900 mb-2">Main Shelter</h3>
+        <p className="text-gray-700">123 Animal Lover Lane</p>
+        <p className="text-gray-700">Petville, USA 12345</p>
+        <p className="text-gray-600 mt-2 font-medium">Open 10am - 6pm, Tue-Sun</p>
+      </div>
+    </main>
+    <TabBar activeScreen="location" onNavigate={onNavigate} />
+  </div>
+);
+
+// --- Main App Component ---
+function App() {
+  const [screen, setScreen] = useState('home');
+  const [formData, setFormData] =useState({ name: '', email: '', phone: '', animalType: '', personality: [] });
+  const [matches, setMatches] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleNavigate = (targetScreen) => setScreen(targetScreen);
+  const handleFormUpdate = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
+
+  const handleSubmit = () => {
+    setIsLoading(true);
+    setScreen('loading');
+    setTimeout(() => {
+      const { animalType, personality } = formData;
+      const results = MOCK_PETS.filter(pet => {
+        const typeMatch = pet.type === animalType;
+        const personalityMatch = personality.length === 0 || personality.some(trait => pet.personality.includes(trait));
+        return typeMatch && personalityMatch;
+      });
+      setMatches(results);
+      setIsLoading(false);
+      setScreen('matches');
+    }, 2000);
+  };
+
+  const LoadingScreen = () => (
+    <div className="flex flex-col h-full items-center justify-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-pink-500"></div>
+      <p className="mt-4 text-lg font-semibold text-gray-700">Finding your perfect match...</p>
+    </div>
+  );
+
+  const renderScreen = () => {
+    if (isLoading && screen !== 'loading') setScreen('loading');
+    switch (screen) {
+      case 'home': return <HomeScreen onNavigate={handleNavigate} />;
+      case 'menu': return <MainMenuScreen onNavigate={handleNavigate} />;
+      case 'howToHelp': return <HowToHelpScreen onNavigate={handleNavigate} />;
+      case 'questionnaire': return <QuestionnaireScreen onNavigate={handleNavigate} formData={formData} onFormUpdate={handleFormUpdate} onSubmit={handleSubmit} />;
+      case 'loading': return <LoadingScreen />;
+      case 'matches': return <MatchesScreen onNavigate={handleNavigate} matches={matches} />;
+      case 'location': return <LocationScreen onNavigate={handleNavigate} />;
+      case 'donateQuiz': return <DonateQuizScreen onNavigate={handleNavigate} />;
+      case 'fosterQuiz': return <FosterQuizScreen onNavigate={handleNavigate} />;
+      case 'report': return <ReportCrueltyScreen onNavigate={handleNavigate} />;
+      case 'lostFound': return <LostFoundScreen onNavigate={handleNavigate} />;
+      case 'dogBodyLanguage': return <DogBodyLanguageScreen onNavigate={handleNavigate} />;
+      case 'catBodyLanguage': return <CatBodyLanguageScreen onNavigate={handleNavigate} />;
+      case 'kittenInfo': return <KittenInfoScreen onNavigate={handleNavigate} />;
+      case 'vetServices': return <VetServicesScreen onNavigate={handleNavigate} />;
+      case 'petFirstAid': return <PetFirstAidScreen onNavigate={handleNavigate} />;
+      case 'newPetIntro': return <IntroducingNewPetScreen onNavigate={handleNavigate} />;
+      default: return <HomeScreen onNavigate={handleNavigate} />;
+    }
+  };
+
+  return (
+    <div className="font-inter flex justify-center items-center min-h-screen p-4">
+      <div className="w-full max-w-sm h-[800px] bg-white rounded-3xl shadow-2xl overflow-hidden border-8 border-black relative">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-black rounded-b-xl z-20">
+          <div className="w-10 h-2 bg-gray-800 rounded-full absolute top-2 left-4"></div>
+        </div>
+        <div className="h-full w-full overflow-y-auto bg-gray-50">
+          {renderScreen()}
+        </div>
+      </div>
+    </div>
+  );
+}
+   
+// --- Mount the React App ---
+const container = document.getElementById('root');
+const root = ReactDOM.createRoot(container);
+root.render(<App />);
+
+    </script>
+</body>
+</html>
+

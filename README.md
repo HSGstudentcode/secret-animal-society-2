@@ -297,7 +297,7 @@ This project is open source and available for educational purposes. Feel free to
 - **Students** - This project was built as a learning exercise in web development
 - **Animal Shelters** - Inspired by the amazing work of real rescue organizations
 - **React Community** - For excellent documentation and learning resources
-- **Open Source** - Built entirely with free, open-source tools
+- **GenerativeAI** - Gemini for wireframe translation into PRD, Gemini Canvas for student prototyping, Claude Code for fixing bugs and creating documentation
 
 ---
 

@@ -751,6 +751,41 @@ const FosterQuizScreen = ({ onNavigate }) => {
     );
 };
 
+// --- LOST & FOUND HELPER COMPONENTS ---
+// IMPORTANT: These components are defined OUTSIDE LostFoundScreen to prevent React re-mounting
+// If defined inside, every state change would recreate these component definitions,
+// causing React to unmount/remount them, which breaks input focus (only 1 character can be typed)
+
+const PetTypeSelect = ({ value, onChange }) => (
+    <select value={value} onChange={onChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
+        {ANIMAL_TYPES.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
+    </select>
+);
+
+const LostReportForm = ({ lostName, setLostName, lostType, setLostType, lastSeen, setLastSeen, handleLostSubmit }) => (
+    <div className="space-y-4">
+        <label className="block text-sm font-medium text-gray-700">Pet's Name</label>
+        <input type="text" value={lostName} onChange={(e) => setLostName(e.target.value)} placeholder="Pet's Name" className="w-full p-3 border border-gray-300 rounded-lg" />
+        <label className="block text-sm font-medium text-gray-700 pt-2">Pet Type</label>
+        <PetTypeSelect value={lostType} onChange={(e) => setLostType(e.target.value)} />
+        <label className="block text-sm font-medium text-gray-700 pt-2">Last Seen Location</label>
+        <input type="text" value={lastSeen} onChange={(e) => setLastSeen(e.target.value)} placeholder="e.g., Corner of Elm" className="w-full p-3 border border-gray-300 rounded-lg" />
+        <button onClick={handleLostSubmit} className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors mt-6">Submit Lost Pet Report</button>
+    </div>
+);
+
+const FoundReportForm = ({ foundType, setFoundType, foundLocation, setFoundLocation, foundDescription, setFoundDescription, handleFoundSubmit }) => (
+    <div className="space-y-4">
+        <label className="block text-sm font-medium text-gray-700">Found Animal Type</label>
+        <PetTypeSelect value={foundType} onChange={(e) => setFoundType(e.target.value)} />
+        <label className="block text-sm font-medium text-gray-700 pt-2">Found Location</label>
+        <input type="text" value={foundLocation} onChange={(e) => setFoundLocation(e.target.value)} placeholder="e.g., Park Entrance" className="w-full p-3 border border-gray-300 rounded-lg" />
+        <label className="block text-sm font-medium text-gray-700 pt-2">Description</label>
+        <textarea value={foundDescription} onChange={(e) => setFoundDescription(e.target.value)} rows="4" placeholder="Color, size, etc." className="w-full p-3 border border-gray-300 rounded-lg"></textarea>
+        <button onClick={handleFoundSubmit} className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors mt-6">Submit Found Pet Report</button>
+    </div>
+);
+
 // --- Screen 6: Lost & Found ---
 const LostFoundScreen = ({ onNavigate }) => {
     const [mode, setMode] = useState('lost');
@@ -764,36 +799,6 @@ const LostFoundScreen = ({ onNavigate }) => {
     const handleLostSubmit = () => { if (lostName && lastSeen) onNavigate('menu'); };
     const handleFoundSubmit = () => { if (foundLocation && foundDescription) onNavigate('menu'); };
 
-    const PetTypeSelect = ({ value, onChange }) => (
-        <select value={value} onChange={onChange} className="w-full p-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500">
-            {ANIMAL_TYPES.map(type => <option key={type.id} value={type.id}>{type.name}</option>)}
-        </select>
-    );
-
-    const LostReportForm = () => (
-        <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700">Pet's Name</label>
-            <input type="text" value={lostName} onChange={(e) => setLostName(e.target.value)} placeholder="Pet's Name" className="w-full p-3 border border-gray-300 rounded-lg" />
-            <label className="block text-sm font-medium text-gray-700 pt-2">Pet Type</label>
-            <PetTypeSelect value={lostType} onChange={(e) => setLostType(e.target.value)} />
-            <label className="block text-sm font-medium text-gray-700 pt-2">Last Seen Location</label>
-            <input type="text" value={lastSeen} onChange={(e) => setLastSeen(e.target.value)} placeholder="e.g., Corner of Elm" className="w-full p-3 border border-gray-300 rounded-lg" />
-            <button onClick={handleLostSubmit} className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors mt-6">Submit Lost Pet Report</button>
-        </div>
-    );
-
-    const FoundReportForm = () => (
-        <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-700">Found Animal Type</label>
-            <PetTypeSelect value={foundType} onChange={(e) => setFoundType(e.target.value)} />
-            <label className="block text-sm font-medium text-gray-700 pt-2">Found Location</label>
-            <input type="text" value={foundLocation} onChange={(e) => setFoundLocation(e.target.value)} placeholder="e.g., Park Entrance" className="w-full p-3 border border-gray-300 rounded-lg" />
-            <label className="block text-sm font-medium text-gray-700 pt-2">Description</label>
-            <textarea value={foundDescription} onChange={(e) => setFoundDescription(e.target.value)} rows="4" placeholder="Color, size, etc." className="w-full p-3 border border-gray-300 rounded-lg"></textarea>
-            <button onClick={handleFoundSubmit} className="w-full bg-pink-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-pink-700 transition-colors mt-6">Submit Found Pet Report</button>
-        </div>
-    );
-
     return (
         <div className="flex flex-col h-full">
             <AppHeader title="Lost & Found Pets" onBack={() => onNavigate('menu')} />
@@ -803,7 +808,27 @@ const LostFoundScreen = ({ onNavigate }) => {
                     <button onClick={() => setMode('found')} className={`flex-1 py-2 text-center font-semibold rounded-full transition-colors ${mode === 'found' ? 'bg-pink-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-300'}`}>Report FOUND Pet</button>
                 </div>
                 <div className="bg-white p-5 rounded-xl shadow-lg border-t-4 border-pink-500">
-                    {mode === 'lost' ? <LostReportForm /> : <FoundReportForm />}
+                    {mode === 'lost' ? (
+                        <LostReportForm
+                            lostName={lostName}
+                            setLostName={setLostName}
+                            lostType={lostType}
+                            setLostType={setLostType}
+                            lastSeen={lastSeen}
+                            setLastSeen={setLastSeen}
+                            handleLostSubmit={handleLostSubmit}
+                        />
+                    ) : (
+                        <FoundReportForm
+                            foundType={foundType}
+                            setFoundType={setFoundType}
+                            foundLocation={foundLocation}
+                            setFoundLocation={setFoundLocation}
+                            foundDescription={foundDescription}
+                            setFoundDescription={setFoundDescription}
+                            handleFoundSubmit={handleFoundSubmit}
+                        />
+                    )}
                 </div>
             </main>
             <TabBar activeScreen="menu" onNavigate={onNavigate} />
